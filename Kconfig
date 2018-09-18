@@ -1,0 +1,13 @@
+config USR_LIB_CONSOLE
+  bool  "userspace console library abstraction"
+  default y
+  select USR_DRV_USART
+  ---help---
+  Support for USART-based console with console_log/console_flush
+  and ring_buffer support. This lib depends on the libusart for
+  USART support.
+config USR_LIB_CONSOLE_CFLAGS
+  string
+  default " -I../../libs/console/api " if USR_LIB_CONSOLE
+
+
