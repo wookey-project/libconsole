@@ -28,7 +28,22 @@ static struct {
     char buf[BUF_SIZE];
 } console_ring_buffer;
 
-usart_config_t config = { 0 };
+usart_config_t config = { 
+    .set_mask = 0,
+    .usart = 0,
+    .mode = UART,
+    .baudrate = 0,
+    .word_length = 0,
+    .parity = 0,
+    .stop_bits = 0,
+    .hw_flow_control = 0,
+    .options_cr1 = 0,
+    .options_cr2 = 0,
+    .guard_time_prescaler = 0,
+    .callback_irq_handler = NULL,
+    .callback_usart_getc_ptr = NULL,
+    .callback_usart_putc_ptr = NULL
+};
 
 void panic(char *fmt, ...)
 {
