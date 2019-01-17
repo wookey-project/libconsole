@@ -28,7 +28,7 @@ static struct {
     char buf[BUF_SIZE];
 } console_ring_buffer;
 
-usart_config_t config = { 
+usart_config_t config = {
     .set_mask = 0,
     .usart = 0,
     .mode = UART,
@@ -206,6 +206,6 @@ uint8_t console_early_init(uint8_t usart_id, uint32_t speed, console_handler han
     config.callback_usart_getc_ptr = &console_getc;
     config.callback_usart_putc_ptr = &console_putc;
 
-    return (usart_early_init(&config));
+    return (usart_early_init(&config, USART_MAP_AUTO));
 }
 
