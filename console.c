@@ -1,6 +1,7 @@
 #include "api/types.h"
 #include "api/syscall.h"
-#include "api/print.h"
+#include "api/stdio.h"
+#include "api/nostd.h"
 #include "api/libusart.h"
 #include "api/libconsole.h"
 
