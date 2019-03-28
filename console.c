@@ -1,7 +1,7 @@
 #include "api/types.h"
 #include "api/syscall.h"
 #include "api/stdio.h"
-#include "api/stdargs.h"
+#include "api/stdarg.h"
 #include "api/string.h"
 #include "api/nostd.h"
 #include "api/libusart.h"
