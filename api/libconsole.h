@@ -7,8 +7,6 @@ typedef void (*console_handler)(uint32_t sr, uint32_t dr);
 
 void console_log(const char *fmt, ...);
 
-void console_flush(void);
-
 uint8_t console_init(void);
 
 /*

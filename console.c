@@ -1,33 +1,11 @@
 #include "api/types.h"
 #include "api/syscall.h"
 #include "api/stdio.h"
+#include "api/stdargs.h"
+#include "api/string.h"
 #include "api/nostd.h"
 #include "api/libusart.h"
 #include "api/libconsole.h"
-
-#define BUF_SIZE	512
-#define BUF_MAX		(BUF_SIZE - 1)
-#define PUT_CHAR(c)					\
-	console_ring_buffer.buf[console_ring_buffer.end++] = c;		\
-	console_ring_buffer.end %= BUF_MAX;			\
-	if (console_ring_buffer.end == console_ring_buffer.start) {	\
-		console_ring_buffer.start++;			\
-		console_ring_buffer.start %= BUF_MAX;		\
-	}
-
-cb_usart_getc_t console_getc = NULL;
-cb_usart_putc_t console_putc = NULL;
-
-void console_flush(void);
-void console_log(const char *fmt, ...);
-
-static void console_print(const char *fmt, va_list args);
-
-static struct {
-    uint32_t start;
-    uint32_t end;
-    char buf[BUF_SIZE];
-} console_ring_buffer;
 
 usart_config_t config = {
     .set_mask = 0,
@@ -46,6 +24,18 @@ usart_config_t config = {
     .callback_usart_putc_ptr = NULL
 };
 
+static void console_print(const char *fmt, va_list args)
+{
+    uint32_t i = 0;
+    char string[128];
+
+    memset(string, 0x0, 128*sizeof(char));
+    vsnprintf(string, 127, fmt, args);
+    while (string[i] != '\0' && i < 128) {
+       ((cb_usart_putc_t)config.callback_usart_putc_ptr)(string[i++]);
+    }
+}
+
 void panic(char *fmt, ...)
 {
     va_list args;
@@ -53,105 +43,8 @@ void panic(char *fmt, ...)
     va_start(args, fmt);
     console_print(fmt, args);
     va_end(args);
-    console_flush();
     while (1)
         continue;
-}
-
-void init_console_ring_buffer(void)
-{
-    int i = 0;
-    console_ring_buffer.end = 0;
-    console_ring_buffer.start = console_ring_buffer.end;
-
-    for (i = 0; i < BUF_MAX; i++) {
-        console_ring_buffer.buf[i] = '\0';
-    }
-}
-
-static void console_write_digit(uint8_t digit)
-{
-    if (digit < 0xa)
-        digit += '0';
-    else
-        digit += 'a' - 0xa;
-    PUT_CHAR(digit);
-}
-
-static void console_copy_string(char *str, uint32_t len)
-{
-    uint32_t size =
-        len < (BUF_MAX - console_ring_buffer.end) ? len : BUF_MAX - console_ring_buffer.end;
-    strncpy(console_ring_buffer.buf + console_ring_buffer.end, str, size);
-    uint32_t dist = console_ring_buffer.start - console_ring_buffer.end;
-    if (console_ring_buffer.end < console_ring_buffer.start && dist < size) {
-        console_ring_buffer.start += size - dist + 1;
-        console_ring_buffer.start %= BUF_MAX;
-    }
-    console_ring_buffer.end += size;
-    console_ring_buffer.end %= BUF_MAX;
-    if (len - size)
-        console_copy_string(str + size, len - size);
-}
-
-
-void console_flush(void)
-{
-    if (console_putc == NULL) {
-        panic("Error: console_putc not initialized");
-    }
-    while (console_ring_buffer.start != console_ring_buffer.end) {
-        console_putc(console_ring_buffer.buf[console_ring_buffer.start++]);
-        console_ring_buffer.start %= BUF_MAX;
-    }
-}
-
-
-static void console_print(const char *fmt, va_list args)
-{
-    uint32_t i = 0;
-    char *string;
-
-    for (i = 0; fmt[i]; i++) {
-        if (fmt[i] == '%') {
-            i++;
-            switch (fmt[i]) {
-            case 'd':
-                itoa(va_arg(args, uint32_t), 10);
-                break;
-            case 'x':
-                PUT_CHAR('0');
-                PUT_CHAR('x');
-                itoa(va_arg(args, uint32_t), 16);
-                break;
-            case '%':
-                PUT_CHAR('%');
-                break;
-            case 's':
-                string = va_arg(args, char *);
-                console_copy_string(string, strlen(string));
-                break;
-            case 'l':
-                if (fmt[i + 1] == 'l' && fmt[i + 2] == 'd') {
-                    itoa(va_arg(args, unsigned long long), 10);
-                    i += 2;
-                } else if (fmt[i + 1] == 'd') {
-                    itoa(va_arg(args, unsigned long), 10);
-                    i++;
-                }
-                break;
-            case 'c':
-                PUT_CHAR((unsigned char)va_arg(args, int));
-                break;
-            default:
-                PUT_CHAR('?');
-            }
-        } else if (fmt[i] == '\n' && fmt[i + 1] != '\r') {
-            console_copy_string("\n\r", 2);
-        } else {
-            PUT_CHAR(fmt[i]);
-        }
-    }
 }
 
 void console_log(const char *fmt, ...)
@@ -169,15 +62,12 @@ void cb_console_irq_handler(uint32_t sr __attribute__((unused)), uint32_t dr)
   // RXNE : bit 5 (starting with 0)
   if (sr & 0x20) {
       if ((dr & 0xff) != '\r') {
-        console_putc(dr & 0xff);
+          ((cb_usart_putc_t)config.callback_usart_putc_ptr)(dr & 0xff);
       } else {
-        // new line + carriage return
-        console_putc('\r');
-        console_putc('\n');
+          // new line + carriage return
+          ((cb_usart_putc_t)config.callback_usart_putc_ptr)('\r');
+          ((cb_usart_putc_t)config.callback_usart_putc_ptr)('\n');
       }
-  } else {
-    // nothing...
-//    printf("%c", dr & 0xff);
   }
 }
 
@@ -188,8 +78,6 @@ uint8_t console_init(void)
 
 uint8_t console_early_init(uint8_t usart_id, uint32_t speed, console_handler handler)
 {
-    init_console_ring_buffer();
-
     config.set_mask = USART_SET_ALL;
     config.mode = UART;
     config.usart = usart_id;
@@ -204,9 +92,10 @@ uint8_t console_early_init(uint8_t usart_id, uint32_t speed, console_handler han
     } else {
         config.callback_irq_handler = cb_console_irq_handler;
     }
-    config.callback_usart_getc_ptr = &console_getc;
-    config.callback_usart_putc_ptr = &console_putc;
+    /* INFO: getc and putc handler in config are set by the USART driver at early init */
 
-    return (usart_early_init(&config, USART_MAP_AUTO));
+    usart_early_init(&config, USART_MAP_AUTO);
+
+    return 0;
 }
 
