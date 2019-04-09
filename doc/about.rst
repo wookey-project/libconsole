@@ -4,8 +4,6 @@ About the libconsole
 Principles
 """"""""""
 
-The libconsole is a simple abstraction of a basic command-line interface over a serial (i.e. U(S)ART) device.
-
 The goal of this library is **not** to implement an effective shell language or any advanced command-line mechanism, but
 to define the necessary primitives to implement such a stack.
 
