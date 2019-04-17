@@ -21,12 +21,12 @@
  * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
-#include "api/types.h"
-#include "api/syscall.h"
-#include "api/stdio.h"
-#include "api/stdarg.h"
-#include "api/string.h"
-#include "api/nostd.h"
+#include "libc/types.h"
+#include "libc/syscall.h"
+#include "libc/stdio.h"
+#include "libc/stdarg.h"
+#include "libc/string.h"
+#include "libc/nostd.h"
 #include "api/libusart.h"
 #include "api/libconsole.h"
 
@@ -148,7 +148,7 @@ static void cb_console_irq_handler(uint32_t sr, uint32_t dr)
  * \brief log a message to the console
  *
  * The fmt format support all the length modifiers and flags that are
- * supported by the printf() libstd familly (see api/stdio.h).
+ * supported by the printf() libstd familly (see libc/stdio.h).
  *
  * \param fmt the output message format
  * \param ... the variable arguments list

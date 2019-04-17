@@ -36,13 +36,13 @@
  *
  */
 
-#include "api/types.h"
+#include "libc/types.h"
 
 /**
  * \brief log a message to the console
  *
  * The fmt format support all the length modifiers and flags that are
- * supported by the printf() libstd familly (see api/stdio.h).
+ * supported by the printf() libstd familly (see libc/stdio.h).
  *
  * \param fmt the output message format
  * \param ... the variable arguments list
