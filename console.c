@@ -27,8 +27,8 @@
 #include "libc/stdarg.h"
 #include "libc/string.h"
 #include "libc/nostd.h"
-#include "api/libusart.h"
-#include "api/libconsole.h"
+#include "libusart.h"
+#include "libconsole.h"
 
 #define MAX_CONSOLE_CMD_SIZE 128
 
