@@ -1,0 +1,19 @@
+About the libconsole
+--------------------
+
+Principles
+""""""""""
+
+The goal of this library is **not** to implement an effective shell language or any advanced command-line mechanism, but
+to define the necessary primitives to implement such a stack.
+
+The libconsole provides an abstraction of the interaction between the U(S)ART interface and the task, by manipulating
+lines and commands instead of .
+
+Limitations
+"""""""""""
+
+The libconsole is not designed for holding multiple serial lines concurrently.
+
+
+
