@@ -53,8 +53,8 @@ typedef struct {
     char             command[MAX_CONSOLE_CMD_SIZE];
 } console_context_t;
 
-console_context_t console_ctx = {
-    .prompt_char = '\0',
+static console_context_t console_ctx = {
+    .prompt_char = '>',
     .has_prompt = false,
     .command_received = false,
     .console_initialized = false,
@@ -98,7 +98,10 @@ static void console_print(const char *fmt, va_list args)
     memset(string, 0x0, 128*sizeof(char));
     vsnprintf(string, 127, fmt, args);
     while (string[i] != '\0' && i < 128) {
-       console_putc(string[i++]);
+        if (string[i] == '\n') {
+            console_putc('\r');
+	}
+        console_putc(string[i++]);
     }
 }
 
@@ -107,7 +110,7 @@ static void console_print(const char *fmt, va_list args)
  */
 static void cb_console_irq_handler(uint32_t sr, uint32_t dr)
 {
-    if (sr & 0x20) {
+    if (sr & 0x20) { /* TXNE flag is set */
       // copy the char in the console ring buffer
       // print char in console too
       if ((dr & 0xff) != '\r') {
@@ -208,33 +211,27 @@ mbed_error_t console_readline(char *str, uint32_t *len, uint32_t maxlen)
         ret = MBED_ERROR_INVPARAM;
         goto err;
     }
-    /* By now, the readline action is a blocking action, meaning that the
-     * task can't handle external non-ISR events such as IPC while it waits
-     * for a command.
-     * TODO: a non-blocking implementation would be useful for more complex
-     * tasks */
-    while (1) {
-        if (console_ctx.command_received) {
-            /* If needed, the received command is trunkated to the user
-             * buffer size */
-            uint32_t to_copy = console_ctx.command_length <= maxlen ? console_ctx.command_length : maxlen;
-            strncpy(str, console_ctx.command, to_copy);
-            *len = to_copy;
 
-            /* if there is not enough space in the user provided buffer, the
-             * function return NOSTORAGE as informational */
-            if (console_ctx.command_length > to_copy) {
-                ret = MBED_ERROR_NOSTORAGE;
-            }
-
-            /* clearing the command buffer */
-            memset(console_ctx.command, 0x0, sizeof(console_ctx.command));
-            console_ctx.command_length = 0;
-            console_ctx.command_received = false;
-            return ret;
-        }
-        sys_yield();
+    while (console_ctx.command_received == false) {
+        sys_sleep(100, SLEEP_MODE_INTERRUPTIBLE); /* wait 100ms at least */
     }
+    /* If needed, the received command is trunkated to the user
+     * buffer size */
+    uint32_t to_copy = console_ctx.command_length <= maxlen ? console_ctx.command_length : maxlen;
+    strncpy(str, console_ctx.command, to_copy);
+    *len = to_copy;
+
+    /* if there is not enough space in the user provided buffer, the
+     * function return NOSTORAGE as informational */
+    if (console_ctx.command_length > to_copy) {
+	    ret = MBED_ERROR_NOSTORAGE;
+    }
+
+    /* clearing the command buffer */
+    memset(console_ctx.command, 0x0, sizeof(console_ctx.command));
+    console_ctx.command_length = 0;
+    console_ctx.command_received = false;
+    return ret;
 err:
     return ret;
 }
@@ -276,7 +273,7 @@ mbed_error_t console_early_init(uint8_t         usart_id,
     config.stop_bits = USART_CR2_STOP_1BIT;
     config.parity = USART_CR1_PCE_DIS;
     config.hw_flow_control = USART_CR3_CTSE_CTS_DIS | USART_CR3_RTSE_RTS_DIS;
-    config.options_cr1 = USART_CR1_TE_EN | USART_CR1_RE_EN | USART_CR1_UE_EN | USART_CR1_RXNEIE_EN;
+    config.options_cr1 = USART_CR1_TE_EN | USART_CR1_RE_EN | USART_CR1_RXNEIE_EN;
     config.callback_irq_handler = cb_console_irq_handler;
     /* INFO: getc and putc handler in config are set by the USART driver at early init */
 
