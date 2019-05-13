@@ -14,6 +14,10 @@ Limitations
 
 This library is not designed for holding multiple serial lines concurrently.
 
+.. warning::
+   The libconsole does not configure any hardware control flow. Deactivate this
+   feature from your serial console client
+
 
 API
 ---
