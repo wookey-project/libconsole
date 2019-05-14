@@ -1,6 +1,9 @@
 Console library
 ===============
 
+.. highlight:: c
+
+
 .. contents::
 
 Overview
