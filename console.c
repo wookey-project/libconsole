@@ -29,6 +29,7 @@
 #include "libc/nostd.h"
 #include "libusart.h"
 #include "libconsole.h"
+#include "libc/sanhandlers.h"
 
 #define MAX_CONSOLE_CMD_SIZE 128
 
@@ -142,6 +143,8 @@ static void cb_console_irq_handler(uint32_t sr, uint32_t dr)
       }
     }
 }
+/* Register our callback */
+ADD_GLOB_HANDLER(cb_console_irq_handler)
 
 /******************************************************
  * libconsole exported API
